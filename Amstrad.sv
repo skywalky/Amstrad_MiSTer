@@ -190,7 +190,7 @@ assign HDMI_FREEZE = 0;
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-// XXX X XXXXXXXXXXXXXXX XXXXXXXXX            XXX
+// XXX XXXXXXXXXXXXXXXXX XXXXXXXXX            XXX
 
 `include "build_id.v"
 localparam CONF_STR = {
@@ -221,6 +221,7 @@ localparam CONF_STR = {
 	"P1-;",
 	"P1O78,Stereo mix,none,25%,50%,100%;",
 	"P1OO,Playcity,Disabled,Enabled;",
+	"P1O5,PlaySIDy,Mono,Stereo;",
 
 	"P2,Hardware;",
 	"P2-;",
@@ -719,6 +720,35 @@ playcity playcity
 
 //////////////////////////////////////////////////////////////////////
 
+wire         playSIDy_ena = status[5];
+wire  [7:0]  playSIDy_dout;
+wire  [15:0] playSIDy_audio_L;
+wire  [15:0] playSIDy_audio_R;
+wire         playSIDy_int_n, playSIDy_nmi;
+
+playSIDy playSIDy
+(
+	.clock(clk_sys),
+	.reset(reset),
+	.conf(playSIDy_ena),
+	.phi_n(phi_n),
+//	.phi_en(phi_en_n),
+	.addr(cpu_addr),
+	.din(cpu_dout),
+	//.dout(playSIDy_dout),
+	//.cpu_di(cpu_din),
+//	.m1_n(~m1),
+	.iorq_n(~iorq),
+//	.rd_n(~rd),
+	.wr_n(~wr),
+//	.int_n(playSIDy_int_n),
+//	.nmi(playSIDy_nmi),
+	.audio_out_l(playSIDy_audio_L),
+	.audio_out_r(playSIDy_audio_R)
+);
+
+//////////////////////////////////////////////////////////////////////
+
 wire mouse_rd = io_rd & ~status[19];
 
 wire [7:0] kmouse_dout;
@@ -953,8 +983,8 @@ wire [8:0] audio_sys_r = audio_r + {tape_rec, 1'b0, tape_play & status[20], 3'd0
 
 assign AUDIO_S   = 0;
 assign AUDIO_MIX = status[8:7];
-assign AUDIO_L   = {audio_sys_l + (playcity_ena ? playcity_audio_l : audio_sys_l), 7'd0};
-assign AUDIO_R   = {audio_sys_r + (playcity_ena ? playcity_audio_r : audio_sys_r), 7'd0};
+assign AUDIO_L   = {audio_sys_l + (playcity_ena ? playcity_audio_l : audio_sys_l), 7'd0} + playSIDy_audio_L;
+assign AUDIO_R   = {audio_sys_r + (playcity_ena ? playcity_audio_r : audio_sys_r), 7'd0} + playSIDy_audio_R;
 
 //////////////////////////////////////////////////////////////////////
 
